@@ -6,26 +6,24 @@
  * file that was distributed with this source code.
  */
 
-use Fasodev\Sdk\OMSDK;
+use Fasodev\Exceptions\PaymentSDKException;
+use Fasodev\Sdk\OrangeMoneyAPI;
+use Fasodev\Sdk\PaymentSDK;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$orangeMoney = OMSDK::init("username", "password", "merchantNumber", OMSDK::ENV_DEV)
-    ->setAmount(1000) // Montant de la transaction
-    ->setOTPCode(121212) // Code otp fourni par l'utilisateur
-    ->setClientNumber(76819212)// Le numero de client
-;
-$result = $orangeMoney
-    ->processPayment() // Enclenchement du processus de paiement
-;
-if ($result->status === 200) {
-    echo " paiement effectuée";
+try {
+    $sdk = new PaymentSDK((new OrangeMoneyAPI("username", "password", "merchantNumber", OrangeMoneyAPI::ENV_DEV))
+        ->setAmount(1000) // Montant de la transaction
+        ->setOTPCode(121212) // Code otp fourni par l'utilisateur
+        ->setClientNumber(76819212)); // Le numero de client
+
+    $result = $sdk->handlePayment(); //Enclenchement du processus de paiement
+
+    echo " paiement effectué";
     echo $result->transID;
 
-} else {
-    echo "<pre>";
-        print_r($result);
-    echo "</pre>";
-    echo $result->message;
+} catch (PaymentSDKException $exception) {
+    echo "Whoops! Unable to process payment. <br /> Error message returned by request: {$exception->getMessage()}. <br /> Error code returned by request: {$exception->getCode()}";
 }
 

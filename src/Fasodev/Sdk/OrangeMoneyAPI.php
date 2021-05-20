@@ -5,20 +5,20 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 declare(strict_types=1);
 
 namespace Fasodev\Sdk;
 
-
+use Fasodev\Exceptions\OrangeMoneyAPIException;
+use Fasodev\Exceptions\PaymentSDKException;
 use Fasodev\Utils\Str;
 use Fasodev\Utils\Xml;
 
 /**
- * Class OMSDK
+ * Class OrangeMoneyAPI
  * @package Fasodev\Sdk
  */
-class OMSDK implements TransactionInterface
+class OrangeMoneyAPI implements TransactionInterface
 {
     /** @var bool */
     const ENV_PROD = true;
@@ -40,46 +40,76 @@ class OMSDK implements TransactionInterface
      * @var string
      */
     private $otp;
+
     /**
      * @var string
      */
     private $username;
+
     /**
      * @var string
      */
     private $password;
+
     /**
      * @var
      */
     private $merchantNumber;
+
     /**
      * @var
      */
     private $clientNumber;
+
     /**
      * @var
      */
     private $referenceNumber = "";
+
     /**
      * @var string
      */
     private $api_url_test = "https://testom.orange.bf:9008/payment";
+
     /**
      * @var string
      */
     private $api_url_prod = "https://apiom.orange.bf:9007/payment";
 
-    public static function init(
-        string $username,
-        string $password,
-        $merchantNumber,
-        bool $env = self::ENV_PROD): OMSDK
+    /**
+     * OrangeMoneyAPI constructor.
+     *
+     * @param string $username
+     * @param string $password
+     * @param $merchantNumber
+     * @param bool $env
+     */
+    public function __construct(string $username,
+                                string $password,
+                                $merchantNumber,
+                                bool $env = self::ENV_PROD)
     {
-        return (new self())
-            ->setUsername($username)
-            ->setMerchantNumber($merchantNumber)
-            ->setPassword($password)
-            ->setAppMode($env);
+        $this->setUsername($username);
+        $this->setMerchantNumber($merchantNumber);
+        $this->setPassword($password);
+        $this->setAppMode($env);
+    }
+
+    /**
+     * @return mixed
+     * @throws PaymentSDKException
+     */
+    public function processPayment()
+    {
+        $RQ = $this->requestApi();
+        $parsed = Xml::toObject("<response>" . $RQ . "</response>");
+
+        // Throw an exception if the request returns any status code that is not 200.
+        if ($parsed->status != 200) {
+            throw new OrangeMoneyAPIException((string) $parsed->message, (int) $parsed->status);
+        }
+
+        return $parsed;
     }
 
     private function requestApi()
@@ -124,7 +154,7 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param float $amount
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setAmount(float $amount): self
     {
@@ -134,7 +164,7 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param string $otp
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setOTPCode(string $otp): self
     {
@@ -144,7 +174,7 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param string $username
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setUsername(string $username): self
     {
@@ -162,23 +192,12 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param string $password
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setPassword(string $password): self
     {
         $this->password = $password;
         return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function processPayment()
-    {
-        $RQ = $this->requestApi();
-        $parsed = Xml::toObject("<response>" . $RQ . "</response>");
-        //TODO: hanle errors
-        return $parsed;
     }
 
     /**
@@ -191,7 +210,7 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param mixed $merchantNumber
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setMerchantNumber($merchantNumber): self
     {
@@ -209,7 +228,7 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param mixed $clientNumber
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setClientNumber($clientNumber): self
     {
@@ -220,14 +239,14 @@ class OMSDK implements TransactionInterface
     /**
      * @return mixed
      */
-    public function getReferenceNumber()
+    public function getReferenceNumber(): string
     {
         return $this->referenceNumber;
     }
 
     /**
      * @param mixed $referenceNumber
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     public function setReferenceNumber($referenceNumber): self
     {
@@ -237,7 +256,7 @@ class OMSDK implements TransactionInterface
 
     /**
      * @param bool $env
-     * @return OMSDK
+     * @return OrangeMoneyAPI
      */
     private function setAppMode(bool $env): self
     {
@@ -252,6 +271,4 @@ class OMSDK implements TransactionInterface
     {
         return $this->app_env === self::ENV_PROD;
     }
-
-
 }
